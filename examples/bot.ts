@@ -11,8 +11,29 @@ let awaitingResponse = false;
 
 botBaileys.on('message', async (message) => {
     if(!awaitingResponse) {
-        await botBaileys.sendText(message.from, 'Hola, Bienvenido al sistema de respuestas rapidas');
-        
+
+        let data = {
+            "driver": "web",
+            "userId": message.from,
+            "message": message.body
+        }
+
+        console.log(data);
+
+        axios.defaults.headers.post['Content-Type'] = 'multipart/form-data';
+        const res = await axios.post('http://app.localhost/botman', data);
+
+        let messages = res.data.messages;
+
+        await messages.forEach(element => {
+            //console.log(element);
+            if(element.type == "text"){
+                botBaileys.sendText(message.from, element?.text); 
+            }
+            
+        });
+
+        // await botBaileys.sendText(message.from, 'Hola, Bienvenido al sistema de respuestas rapidas');
     }
 
     // if (!awaitingResponse) {
