@@ -9,9 +9,6 @@ botBaileys.on('ready', async () => console.log('READY BOT'))
 
 let awaitingResponse = false;
 
-
-
-
 botBaileys.on('message', async (message) => {
     if(!awaitingResponse) {
 
@@ -37,9 +34,7 @@ botBaileys.on('message', async (message) => {
                 }
             }
         });
-        // await botBaileys.sendText(message.from, 'Hola, Bienvenido al sistema de respuestas rapidas');
     }
-
 
     // if (!awaitingResponse) {
     //     await botBaileys.sendPoll(message.from, 'Select an option', {
