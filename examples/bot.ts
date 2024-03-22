@@ -1,40 +1,50 @@
-import { BaileysClass } from '../lib/baileys.js';
 import axios from 'axios';
+
+import { BaileysClass } from '../lib/baileys.js';
+import { BotEvents, Postman, MessageType } from './constants';
+import { BOTMAN_URL } from './environments';
 
 const botBaileys = new BaileysClass({});
 
-botBaileys.on('auth_failure', async (error) => console.log("ERROR BOT: ", error));
-botBaileys.on('qr', (qr) => console.log("NEW QR CODE: ", qr));
-botBaileys.on('ready', async () => console.log('READY BOT'))
-
-let awaitingResponse = false;
-
-botBaileys.on('message', async (message) => {
-    if(!awaitingResponse) {
-
-        let data = {
-            "driver": "web",
-            "userId": message.from,
-            "message": message.body
+botBaileys.on(BotEvents.AUTH, (error) => console.log("ERROR BOT: ", error));
+botBaileys.on(BotEvents.QR, (qr) => console.log("NEW QR CODE: ", qr));
+botBaileys.on(BotEvents.READY, () => console.log('READY BOT'))
+botBaileys.on(BotEvents.MESSAGE, async (message) => {
+    /**
+     * 1. Send message to botman:
+     */
+    const botmanResponse = await axios.post(BOTMAN_URL, {
+        "driver": Postman.WEB,
+        "userId": message.from,
+        "message": message.body
+    }, {
+        headers: {
+            'Content-Type': Postman.CONTENT_TYPE
         }
+    });
 
-        axios.defaults.headers.post['Content-Type'] = 'multipart/form-data';
-        const res = await axios.post('http://app.localhost/botman', data);
+    /**
+     * 2. Filter text only messages from botman:
+     */
+    const messages = botmanResponse.data.messages
+        .filter(message => message.type === MessageType.TEXT);
 
-        let messages = res.data.messages;
-
-        messages.forEach(element => {    
-            console.log(element);
-
-            if(element.type == "text"){
-                if(element.attachment == null) {
-                    botBaileys.sendText(message.from, element?.text); 
-                } else {
-                    botBaileys.sendMedia(message.from, element.attachment.url, element.text);   
-                }
-            }
-        });
+    /**
+     * 3. Send message to WS using the messages coming from botman:
+     */
+    for (const botMessage of messages) {
+        if (!botMessage.attachment) {
+            await botBaileys.sendText(message.from, botMessage.text);
+        } else {
+            await botBaileys.sendMedia(
+                message.from, 
+                botMessage.attachment.url, 
+                botMessage.text
+            );
+        }
     }
+    
+
 
     // if (!awaitingResponse) {
     //     await botBaileys.sendPoll(message.from, 'Select an option', {
